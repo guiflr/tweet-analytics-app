@@ -5,11 +5,19 @@ import { MongooseModule } from '@nestjs/mongoose';
 import { Tweet, TweetSchema } from './entities/tweet.entity';
 import { CheckNewTweetsTask } from './check-new-tweets/check-new-tweets.task';
 import * as redisStore from 'cache-manager-redis-store';
+import { BullModule } from '@nestjs/bull';
 
 @Module({
   imports: [
-    CacheModule.register({ store: redisStore, host: 'redis', port: 6379 }),
+    CacheModule.registerAsync({
+      useFactory: () => ({
+        store: redisStore,
+        host: process.env.REDIS_HOST,
+        port: parseInt(process.env.REDIS_PORT),
+      }),
+    }),
     MongooseModule.forFeature([{ name: Tweet.name, schema: TweetSchema }]),
+    BullModule.registerQueue({ name: 'emails' }),
   ],
   controllers: [TweetsController],
   providers: [TweetsService, CheckNewTweetsTask],
